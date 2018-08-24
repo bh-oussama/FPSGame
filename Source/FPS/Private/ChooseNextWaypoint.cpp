@@ -28,8 +28,19 @@ EBTNodeResult::Type UChooseNextWaypoint::ExecuteTask(UBehaviorTreeComponent& Own
 	auto BlackboardComp = OwnerComp.GetBlackboardComponent();
 	auto Index = BlackboardComp->GetValueAsInt(IndexKey.SelectedKeyName);
 
-	Index++;
-	Index %= PatrollingPoints.Num();
+	if (firstWay)
+	{
+		Index++;
+	}
+	else 
+	{
+		Index--;
+	}
+
+	if (Index == PatrollingPoints.Num() - 1 || Index == -1)
+		firstWay = !firstWay;
+
+	Index = FMath::Clamp<int>(Index, 0, PatrollingPoints.Num()-1);
 	// setting next waypoint.
 	BlackboardComp->SetValueAsObject(WaypointKey.SelectedKeyName, PatrollingPoints[Index]);
 	
