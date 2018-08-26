@@ -7,6 +7,11 @@
 #include "BC_Weapon.generated.h"
 
 class USkeletalMeshComponent;
+class ABC_Projectile;
+class FTimerManager;
+class ACharacter;
+
+struct FTimerHandle;
 
 UCLASS()
 class FPS_API ABC_Weapon : public AActor
@@ -25,11 +30,53 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Baisc")
-		float Damage = 30;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Baisc")
+	UPROPERTY(VisibleDefaultsOnly)
 		USkeletalMeshComponent* Mesh = nullptr;
 	
+	UPROPERTY(EditDefaultsOnly, Category = "Basic")
+		float FireRange = 10000;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Basic")
+		float Damage = 25;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Basic")
+		float FireRate = 500;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Basic")
+		TSubclassOf<ABC_Projectile> ProjectileClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Basic")
+		FName MuzzleName = "Muzzle";
+
+	/** Sound to play each time we fire */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Gameplay)
+		class USoundBase* FireSound;
+
+	/** AnimMontage to play each time we fire */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Gameplay)
+		class UAnimMontage* FireAnimation;
+
+	UFUNCTION(BlueprintCallable)
+		void Fire();
+
+	UFUNCTION(BlueprintCallable)
+		void AutoFire();
+
+	UFUNCTION(BlueprintCallable)
+		void StopFire();
+
+	UFUNCTION(BlueprintCallable)
+		void SetOwnerPawn(ACharacter* const OwnerCharacter);
+
+private:
+	ACharacter * OwnerPawn = nullptr;
+	FTimerHandle Timer;
+	/*
+	FTimerManager TimerManager = FTimerManager();
+	FTimerHandle Timer;
+	*/
+
+
+
 	
 };

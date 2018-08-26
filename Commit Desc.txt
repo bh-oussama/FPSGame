@@ -1,0 +1,3 @@
+•Added Saved/Config/Windows folder to the commit because it contains folders' color and other light info.
+•Gun fires (manual/auto) / still don't have FireMode.
+•AI improved
