@@ -3,13 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
+#include "BC_Character.h"
 #include "BC_EnemyChar.generated.h"
 
 class ABC_Weapon;
 
 UCLASS()
-class FPS_API ABC_EnemyChar : public ACharacter
+class FPS_API ABC_EnemyChar : public ABC_Character
 {
 	GENERATED_BODY()
 
@@ -28,14 +28,8 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Basic")
-		float Health = 100;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Basic")
-		TSubclassOf<ABC_Weapon> Weapon;
 	
 private:
-	ABC_Weapon* PrimaryWPN;
 
 	
 };

@@ -5,6 +5,7 @@
 #include "Engine.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/SceneComponent.h"
+#include "Camera/CameraComponent.h"
 #include "BC_Projectile.h"
 #include "Kismet/GameplayStatics.h"
 #include "Animation/AnimInstance.h"
@@ -16,6 +17,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "DebugDrawer.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 // Sets default values
 ABC_Weapon::ABC_Weapon()
@@ -28,14 +30,26 @@ ABC_Weapon::ABC_Weapon()
 	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(FName("Mesh"));
 	Mesh->SetupAttachment(Root);
 
+	// sets the default fire mode and if there is no one set by default logs it.
+	if (FireModes.Num() > 0)
+	{
+		CurrentFireMode = FireModes[0];
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("The Weapon %s's FireModes array is empty."), *GetName());
+	}
+
+	CurrentAccuracy = Accuracy;
+	CurrentAmmoInClip = ClipMaxSize;
+	CurrentAmmoInPocket = MaxAmmoInPocket;
 }
 
 // Called when the game starts or when spawned
 void ABC_Weapon::BeginPlay()
 {
 	Super::BeginPlay();
-
-
+	
 }
 
 // Called every frame
@@ -43,76 +57,140 @@ void ABC_Weapon::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// clear BurstTimer 
+	if (BulletCount >= 3)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(BurstTimer);
+		BulletCount = 0;
+		bIsFiring = false;
+	}
+
+	if (!bIsFiring)
+	{
+		CurrentAccuracy = FMath::FInterpTo(CurrentAccuracy, Accuracy, DeltaTime, Control *4);
+		BulletCount = 0;
+	}
+
 }
 
-
-
-void ABC_Weapon::Fire()
+void ABC_Weapon::OnFire(FVector TargetLocation)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Gun is firing."));
-	// try and fire a projectile
-	if (ProjectileClass != NULL)
+	if (Camera == NULL && TargetLocation.Equals(FVector(0,0,-100000)))
 	{
-		UWorld* const World = GetWorld();
-		if (World != NULL)
+		UE_LOG(LogTemp, Error, TEXT("The Weapon %s's Camera is not set."), *GetName());
+		return;
+	}
+	if (!bCanFire || bIsReloading) { return; }
+	switch (CurrentFireMode)
+	{
+	case EWeaponFireMode::FIRE_AUTO:
+	{
+		AutoFire(TargetLocation);
+		break;
+	}
+	case EWeaponFireMode::FIRE_BURST:
+	{
+		BurstFire(TargetLocation);
+		break;
+	}
+	case EWeaponFireMode::FIRE_MANUAL:
+	{
+		Fire(TargetLocation);
+		break;
+	}
+	}
+}
+
+void ABC_Weapon::OnReload()
+{
+	if (
+		// clip not full
+		(CurrentAmmoInClip <= ClipMaxSize) ||
+		// if there is a bullet in bolt and clip is a -1 bullet
+		(bHasBulletInBolt && CurrentAmmoInClip == ClipMaxSize)
+		)
+	{
+		if (CurrentAmmoInPocket > 0)
 		{
-			Mesh->GetSocketLocation(MuzzleName);
-			
-			const FVector SpawnLocation = Mesh->GetSocketLocation(MuzzleName);;
-
-			const FVector2D ViewportSize = FVector2D(GEngine->GameViewport->Viewport->GetSizeXY());
-			const FVector2D ViewportCenter = FVector2D(ViewportSize.X/2, ViewportSize.Y/2);
-
-			
-
-			FVector AimPoint, AimDirection;
-
-			UGameplayStatics::DeprojectScreenToWorld(
-				Cast<APlayerController>(OwnerPawn->Controller),
-				ViewportCenter,
-				AimPoint,
-				AimDirection
-			);
-
-			FHitResult HitResult;
-			FCollisionQueryParams params = FCollisionQueryParams(FName("Trace"), true);
-			params.AddIgnoredActor(OwnerPawn);
-
-			GetWorld()->LineTraceSingleByChannel(
-				HitResult,
-				AimPoint,
-				AimPoint + AimDirection * FireRange,
-				ECollisionChannel::ECC_Camera,
-				params
-			);
-
-			/* incomment to draw debug of projectile line trace.
-					DebugDrawer::DrawDebugLineTrace(
-						GetWorld(),
-						HitResult,
-						AimPoint,
-						AimPoint + AimDirection * FireRange,
-						5
-					);
-			*/
-
-			
-			
-
-			const FRotator SpawnRotation = UKismetMathLibrary::FindLookAtRotation(SpawnLocation, HitResult.ImpactPoint);
-
-			
-
-			UE_LOG(LogTemp, Warning, TEXT("ViewportCenter: %s"), *ViewportCenter.ToString());
-			//Set Spawn Collision Handling Override
-			FActorSpawnParameters ActorSpawnParams;
-			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-			// spawn the projectile at the muzzle
-			auto ProjectileSpawned = World->SpawnActor<ABC_Projectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
-			ProjectileSpawned->SphereComponent->IgnoreActorWhenMoving(OwnerPawn, true);
+			Reload();
+		}
+		else
+		{
+			bHasBulletInBolt = false;
+			// no bullets are left 
+			if (CurrentAmmoInClip == 0)
+			{
+				if (EmptyClipSound != NULL)
+				{
+					UGameplayStatics::PlaySoundAtLocation(this, EmptyClipSound, GetActorLocation());
+				}
+			}
+			return;
 		}
 	}
+	
+}
+
+void ABC_Weapon::Reload()
+{
+	bCanFire = false;
+	bIsReloading = true;
+
+	// try and play a firing animation if specified
+	if (ReloadAnimation != NULL)
+	{
+		// Get the animation object for the arms mesh
+		if (OwnerPawn->GetMesh())
+		{
+			UAnimInstance* AnimInstance3P = OwnerPawn->GetMesh()->GetAnimInstance();
+			if (AnimInstance3P != NULL)
+			{
+				AnimInstance3P->Montage_Play(ReloadAnimation, 1.f);
+			}
+
+		}
+		if (Cast<AFPS_Char>(OwnerPawn)->Mesh1P)
+		{
+			UAnimInstance* AnimInstance1P = Cast<AFPS_Char>(OwnerPawn)->Mesh1P->GetAnimInstance();
+			if (AnimInstance1P != NULL)
+			{
+				AnimInstance1P->Montage_Play(ReloadAnimation, 1.f);
+			}
+		}
+	}
+	
+	// wait for ReloadAnimation in Ammo time, update ammo info and end reloading
+	UKismetSystemLibrary::Delay(GetWorld(), ReloadTimeInAnimation, FLatentActionInfo());
+	
+	CurrentAmmoInPocket += CurrentAmmoInClip;
+	CurrentAmmoInClip = FMath::Min<float>(CurrentAmmoInPocket, ClipMaxSize + ((bHasBulletInBolt) ? 1 : 0) );
+	CurrentAmmoInPocket -= CurrentAmmoInClip;
+	if (ReloadAnimation != NULL)
+	{
+		UKismetSystemLibrary::Delay(GetWorld(), ReloadAnimation->GetPlayLength() - ReloadTimeInAnimation, FLatentActionInfo());
+	}
+
+	bIsReloading = false;
+	bHasBulletInBolt = false;
+	bCanFire = true;
+	
+	// reload if the clip is empty.
+	if (CurrentAmmoInClip == 0) OnReload();
+
+}
+
+void ABC_Weapon::Fire(FVector TargetLocation)
+{
+	if (CurrentAmmoInClip == 0)
+	{
+		Reload();
+		return;
+	}
+	bIsFiring = true;
+	bCanFire = false;
+	BulletCount++;
+	
+	// try and fire a projectile
 	
 	// try and play the sound if specified
 	if (FireSound != NULL)
@@ -124,32 +202,174 @@ void ABC_Weapon::Fire()
 	if (FireAnimation != NULL)
 	{
 		// Get the animation object for the arms mesh
-		UAnimInstance* AnimInstance3P = OwnerPawn->GetMesh()->GetAnimInstance();
-		UAnimInstance* AnimInstance1P = Cast<AFPS_Char>(OwnerPawn)->Mesh1P->GetAnimInstance();
-		if (AnimInstance3P != NULL)
+		if (OwnerPawn->GetMesh())
 		{
-			AnimInstance3P->Montage_Play(FireAnimation, 1.f);
+			UAnimInstance* AnimInstance3P = OwnerPawn->GetMesh()->GetAnimInstance();
+			if (AnimInstance3P != NULL)
+			{
+				AnimInstance3P->Montage_Play(FireAnimation, 1.f);
+			}
 		}
+			
+		UAnimInstance* AnimInstance1P = Cast<AFPS_Char>(OwnerPawn)->Mesh1P->GetAnimInstance();
 		if (AnimInstance1P != NULL)
 		{
 			AnimInstance1P->Montage_Play(FireAnimation, 1.f);
 		}
 	}
+	
+	bHasBulletInBolt = (--CurrentAmmoInClip > 0) ? true : false;
+	
+	// Add pitch rotation to the player because of lack of control.
+	OwnerPawn->AddControllerPitchInput((1 - Control) * (-2));
+
+	UKismetSystemLibrary::Delay(GetWorld(), 1 / (FireRate / 60), FLatentActionInfo());
+	// post-fire update
+	CurrentAccuracy = FMath::Clamp<float>(CurrentAccuracy - (1 - Control) * BulletCount, 0, 100);
+	bCanFire = true;
+}
+
+void ABC_Weapon::SpawnProjectiles(FVector TargetLocation)
+{
+	if (ProjectileClass != NULL)
+	{
+		UWorld* const World = GetWorld();
+		if (World != NULL)
+		{
+			float InversedAccuracy = 1 - CurrentAccuracy;
+
+			const FVector SpawnLocation = Mesh->GetSocketLocation(MuzzleName);
+
+			FRotator SpawnRotation;
+			if (TargetLocation.Equals(FVector(0, 0, -100000)))
+			{
+				// when the player is firing.
+
+				FRotator ViewRotation = Camera->GetComponentRotation() + FRotator(
+					0,
+					UKismetMathLibrary::RandomFloatInRange(-InversedAccuracy * BulletCount / 2, InversedAccuracy * BulletCount / 2),
+					UKismetMathLibrary::RandomFloatInRange(-InversedAccuracy * BulletCount / 2, InversedAccuracy * BulletCount / 2)
+				);
+
+				FHitResult HitResult;
+				FCollisionQueryParams params = FCollisionQueryParams(FName("Trace"), true);
+				params.AddIgnoredActor(OwnerPawn);
+
+				GetWorld()->LineTraceSingleByChannel(
+					HitResult,
+					Camera->GetComponentLocation(),
+					Camera->GetComponentLocation() + UKismetMathLibrary::GetForwardVector(ViewRotation) * FireRange,
+					ECollisionChannel::ECC_Camera,
+					params
+				);
+				SpawnRotation = UKismetMathLibrary::FindLookAtRotation(SpawnLocation, HitResult.ImpactPoint);
+			}
+			else
+			{
+				// usually when the ai is firing.
+				FVector FiringDirection = (TargetLocation - SpawnLocation).GetSafeNormal();
+				FRotator FiringRotation = UKismetMathLibrary::FindLookAtRotation(SpawnLocation, SpawnLocation + FiringDirection) + FRotator(
+					0,
+					UKismetMathLibrary::RandomFloatInRange(-InversedAccuracy * BulletCount / 2, InversedAccuracy * BulletCount / 2),
+					UKismetMathLibrary::RandomFloatInRange(-InversedAccuracy * BulletCount / 2, InversedAccuracy * BulletCount / 2)
+				);
+
+				SpawnRotation = FiringRotation;
+			}
+
+			//Set Spawn Collision Handling Override
+			FActorSpawnParameters ActorSpawnParams;
+			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+			// spawn the projectile at the muzzle
+			auto ProjectileSpawned = World->SpawnActor<ABC_Projectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+			if (ProjectileSpawned)
+			{
+				ProjectileSpawned->SphereComponent->IgnoreActorWhenMoving(OwnerPawn, true);
+			}
+
+		}
+		else
+		{
+			// end if GetWorld() returned NULL value.
+			return;
+		}
+	}
+	else
+	{
+		// end if projectile class is not set.
+		return;
+	}
 
 }
 
-void ABC_Weapon::AutoFire()
+
+void ABC_Weapon::AutoFire(FVector TargetLocation)
 {
-	Fire();
-	GetWorld()->GetTimerManager().SetTimer(Timer, this, &ABC_Weapon::Fire, 1/(FireRate/60), true);
+	Fire(TargetLocation);
+	TimerDelegate = FTimerDelegate::CreateUObject(this, &ABC_Weapon::Fire, TargetLocation);
+
+	GetWorld()->GetTimerManager().SetTimer(Timer, TimerDelegate, 1/(FireRate/60), true);
+}
+
+void ABC_Weapon::BurstFire(FVector TargetLocation)
+{
+	Fire(TargetLocation);
+	BurstTimerDelegate = FTimerDelegate::CreateUObject(this, &ABC_Weapon::Fire, TargetLocation);
+
+	GetWorld()->GetTimerManager().SetTimer(BurstTimer, BurstTimerDelegate, 1 / (FireRate / 60), true);
 }
 
 void ABC_Weapon::StopFire()
 {
-	GetWorld()->GetTimerManager().ClearTimer(Timer);
+	
+	if (CurrentFireMode == EWeaponFireMode::FIRE_AUTO)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(Timer);
+		bIsFiring = false;
+	}
+		
 }
 
 void ABC_Weapon::SetOwnerPawn(ACharacter* const OwnerCharacter)
 {
 	OwnerPawn = OwnerCharacter;
 }
+
+void ABC_Weapon::SetToNextFireModePossible()
+{
+	if (FireModes.Num() == 1) { return; }
+	for (int i = 0; i < FireModes.Num(); i++) 
+	{
+		if (FireModes[i] != CurrentFireMode) { continue; }
+		CurrentFireMode = (i + 1 < FireModes.Num()) ? FireModes[i + 1] : FireModes[0];
+		return;
+	}
+	CurrentFireMode = FireModes[0];
+}
+
+int32 ABC_Weapon::GetCurrentAmmoInClip()
+{
+	return CurrentAmmoInClip;
+}
+
+int32 ABC_Weapon::GetCurrentAmmoInPocket()
+{
+	return CurrentAmmoInPocket;
+}
+
+EWeaponFireMode ABC_Weapon::GetCurrentFireMode()
+{
+	return CurrentFireMode;
+}
+
+bool ABC_Weapon::IsFiring()
+{
+	return bIsFiring;
+}
+
+void ABC_Weapon::SetCamera(UCameraComponent* CameraToSet)
+{
+	Camera = CameraToSet;
+}
+

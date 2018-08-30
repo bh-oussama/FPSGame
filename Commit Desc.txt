@@ -1,5 +1,0 @@
-Added packs:
--RifleAnimsetPro(Kubold)
--Rifle_01
--Weapons (ChamferZone)
--MilitaryWeaponSilver

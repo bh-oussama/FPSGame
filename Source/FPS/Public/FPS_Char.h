@@ -3,11 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
+#include "BC_Character.h"
 #include "FPS_Char.generated.h"
 
+
 UCLASS()
-class FPS_API AFPS_Char : public ACharacter
+class FPS_API AFPS_Char : public ABC_Character
 {
 	GENERATED_BODY()
 
@@ -18,15 +19,6 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-	/** Fires a projectile. */
-	void OnFire();
-
-	/** Stops Firing projectiles. */
-	void OnStopFire();
-
-	/** Resets HMD orientation and position in VR. */
-	void OnResetVR();
 
 	/** Handles moving forward/backward */
 	void MoveForward(float Val);
@@ -47,8 +39,17 @@ protected:
 	void LookUpAtRate(float Rate);
 
 
+	/** returns forward movement value which is set via input. */
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+		virtual float GetForwardMovement() override;
+
+	/** returns right movement value which is set via input. */
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+		virtual float GetRightMovement() override;
+
 
 public:	
+
 	/** Pawn mesh: 1st person view (arms; seen only by self) */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 		class USkeletalMeshComponent* Mesh1P;
@@ -56,6 +57,11 @@ public:
 	/** First person camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 		class UCameraComponent* FirstPersonCameraComponent;
+	
+	/** Hand's weapon socket */
+	UPROPERTY(EditDefaultsOnly, Category = "Weapons")
+		FName HandGripSocketName = "GripPoint";
+
 
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
@@ -65,11 +71,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		float BaseLookUpRate;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Weapons")
-		TSubclassOf<class ABC_Weapon> PrimaryWPNClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Weapons")
-		FName PrimaryWPNSocketName = "Socket_PrimaryWPN";
 
 
 	// Called every frame
@@ -78,6 +79,4 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-private:
-	class ABC_Weapon* EquippedWeapon = nullptr;
 };

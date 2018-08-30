@@ -6,8 +6,9 @@
 #include "Components/InputComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "BC_Weapon.h"
+#include "Engine/EngineTypes.h"
 
-// TODO: make the weapon fire at will.
+// TODO: give fps_char his proper equipped weapon in a way that tps and fps equipped weapons exist in the same time and with the same reference if possible.
 
 // Sets default values
 AFPS_Char::AFPS_Char()
@@ -46,13 +47,14 @@ void AFPS_Char::BeginPlay()
 	
 	if (PrimaryWPNClass != NULL)
 	{
-		UWorld* const World = GetWorld();
-		EquippedWeapon = World->SpawnActor<ABC_Weapon>(PrimaryWPNClass);
-		FAttachmentTransformRules rules = FAttachmentTransformRules(EAttachmentRule::SnapToTarget, false);
-		EquippedWeapon->AttachToComponent(Mesh1P, rules, PrimaryWPNSocketName);
-		EquippedWeapon->SetOwnerPawn(this);
+		// equip primary weapon because of the extra hands of the 1P
+		GetEquippedWeapon()->DetachFromActor(FDetachmentTransformRules(EDetachmentRule::KeepWorld, false));
+		GetEquippedWeapon()->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, false), HandGripSocketName);
+		GetEquippedWeapon()->SetCamera(FirstPersonCameraComponent);
+		GetEquippedWeapon()->SetOwnerPawn(this);
 	}
 }
+
 
 
 // Called every frame
@@ -72,8 +74,14 @@ void AFPS_Char::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
 	// Bind fire event
-	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPS_Char::OnFire);
-	PlayerInputComponent->BindAction("Fire", IE_Released, this, &AFPS_Char::OnStopFire);
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPS_Char::Fire);
+	PlayerInputComponent->BindAction("Fire", IE_Released, this, &AFPS_Char::StopFire);
+
+	// Bind reload event
+	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &AFPS_Char::Reload);
+
+	// Bind switch fire mode event
+	PlayerInputComponent->BindAction("SwitchWeaponMode", IE_Pressed, this, &AFPS_Char::SwitchWeaponMode);
 
 	// Bind movement events
 	PlayerInputComponent->BindAxis("MoveForward", this, &AFPS_Char::MoveForward);
@@ -96,6 +104,7 @@ void AFPS_Char::MoveForward(float Value)
 		// add movement in that direction
 		AddMovementInput(GetActorForwardVector(), Value);
 	}
+	MoveForwardValue = Value;
 }
 
 void AFPS_Char::MoveRight(float Value)
@@ -105,6 +114,7 @@ void AFPS_Char::MoveRight(float Value)
 		// add movement in that direction
 		AddMovementInput(GetActorRightVector(), Value);
 	}
+	MoveRightValue = Value;
 }
 
 void AFPS_Char::TurnAtRate(float Rate)
@@ -119,13 +129,12 @@ void AFPS_Char::LookUpAtRate(float Rate)
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 }
 
-void AFPS_Char::OnFire()
+float AFPS_Char::GetForwardMovement()
 {
-	EquippedWeapon->AutoFire();
-	//EquippedWeapon->Fire();
+	return MoveForwardValue;
 }
 
-void AFPS_Char::OnStopFire()
+float AFPS_Char::GetRightMovement()
 {
-	EquippedWeapon->StopFire();
+	return MoveRightValue;
 }

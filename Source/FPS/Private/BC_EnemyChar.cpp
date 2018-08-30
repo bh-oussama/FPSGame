@@ -16,14 +16,6 @@ void ABC_EnemyChar::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	//spawning the wpn.
-	PrimaryWPN = GetWorld()->SpawnActor<ABC_Weapon>(Weapon);
-
-	// Attaching wpn to the character.
-	if (ensure(Weapon))
-	{
-		PrimaryWPN->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), FName("Socket_PrimaryWPN"));
-	}
 }
 
 
