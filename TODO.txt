@@ -1,12 +1,16 @@
 
+Camera Control:
+	- make functionnal switching between cameras in AFPS_Char
+	
 AI:
 make ai fire the weapon at sight
 
 Caracters & Animations:
+	- make the fps_char supprts TPS
 	- give the FPS_Char it's own EquippedWeapon not the one that the TPS_Mesh should have (find a solution before).
 	- After importing a sniper make it run under the rifle animation and give it a two bone ik
 	- After importing a Shotgun make it run under the rifle animation and give it a two bone ik
-	- make the character move faster/slower with the AnimationPlayRate variable as it works in the Animtion Blueprint
+	- Update the character's movement status and movement component's max speed depending on situation.
 	
 Weapons & Projectiles:
 	-give attachements to the weapon.

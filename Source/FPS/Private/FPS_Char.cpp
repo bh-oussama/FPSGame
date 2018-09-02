@@ -2,11 +2,13 @@
 
 #include "FPS_Char.h"
 #include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "BC_Weapon.h"
 #include "Engine/EngineTypes.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 // TODO: give fps_char his proper equipped weapon in a way that tps and fps equipped weapons exist in the same time and with the same reference if possible.
 
@@ -23,8 +25,24 @@ AFPS_Char::AFPS_Char()
 	BaseTurnRate = 45.f;
 	BaseLookUpRate = 45.f;
 
+	// hidding the 3rd person mesh
+	GetMesh()->bOwnerNoSee = true;
+	GetMesh()->RelativeRotation = FRotator(0, -90, 0);
+
+	// Create a SpringArmComponent for the 3P's camera
+	ThirdPersonSpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("Spring Arm"));
+	ThirdPersonSpringArmComponent->TargetArmLength = 150;
+	ThirdPersonSpringArmComponent->RelativeLocation = FVector(0, 0, 30);
+	ThirdPersonSpringArmComponent->SocketOffset = FVector(0, 66, 20);
+
+	// Create a CameraComponent for the third person mesh view 	
+	ThirdPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+	ThirdPersonCameraComponent->SetupAttachment(ThirdPersonSpringArmComponent);
+	ThirdPersonCameraComponent->bAutoActivate = false;
+	//ThirdPersonCameraComponent->Deactivate();
+
 	// Create a CameraComponent	
-	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
 	FirstPersonCameraComponent->SetupAttachment(GetCapsuleComponent());
 	FirstPersonCameraComponent->RelativeLocation = FVector(-39.56f, 1.75f, 64.f); // Position the camera
 	FirstPersonCameraComponent->bUsePawnControlRotation = true;
@@ -44,6 +62,7 @@ AFPS_Char::AFPS_Char()
 void AFPS_Char::BeginPlay()
 {
 	Super::BeginPlay();
+	ThirdPersonCameraComponent->Deactivate();
 	
 	if (PrimaryWPNClass != NULL)
 	{
@@ -62,6 +81,13 @@ void AFPS_Char::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	UKismetSystemLibrary::PrintString(
+		GetWorld(),
+		(FString)((ThirdPersonCameraComponent->IsActive()) ? "true" : "false"),
+		true,
+		false,
+		FLinearColor(1, 0, 0)
+	);
 }
 
 // Called to bind functionality to input
@@ -83,9 +109,18 @@ void AFPS_Char::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	// Bind switch fire mode event
 	PlayerInputComponent->BindAction("SwitchWeaponMode", IE_Pressed, this, &AFPS_Char::SwitchWeaponMode);
 
+	// Bind camera switching event
+	PlayerInputComponent->BindAction("SwitchCamera", IE_Pressed, this, &AFPS_Char::SwitchCamera);
+
 	// Bind movement events
 	PlayerInputComponent->BindAxis("MoveForward", this, &AFPS_Char::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AFPS_Char::MoveRight);
+	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AFPS_Char::Crouch);
+	PlayerInputComponent->BindAction("Run", IE_Pressed, this, &AFPS_Char::Run);
+	PlayerInputComponent->BindAction("Walk", IE_Pressed, this, &AFPS_Char::Walk);
+	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &AFPS_Char::CrouchRelease);
+	PlayerInputComponent->BindAction("Run", IE_Released, this, &AFPS_Char::RunRelease);
+	PlayerInputComponent->BindAction("Walk", IE_Released, this, &AFPS_Char::WalkRelease);
 
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
@@ -129,6 +164,51 @@ void AFPS_Char::LookUpAtRate(float Rate)
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 }
 
+void AFPS_Char::SwitchCamera()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Switching camera."));
+	// switching camera
+
+	ThirdPersonCameraComponent->SetActive(true);
+	FirstPersonCameraComponent->SetActive(false);
+/*
+	FirstPersonCameraComponent->ToggleActive();
+	ThirdPersonCameraComponent->ToggleActive();
+*/
+	//// updating the mesh that the player see
+	//if (FirstPersonCameraComponent->IsActive())
+	//{
+	//	Mesh1P->bOwnerNoSee = false;
+	//	GetMesh()->bOwnerNoSee = true;
+	//}
+	//else
+	//{
+	//	Mesh1P->bOwnerNoSee = true;
+	//	GetMesh()->bOwnerNoSee = false;
+	//}
+
+	// incomment this section if the character has more than 2 cameras to toggle between.
+	//auto Cameras = GetComponentsByClass(UCameraComponent::StaticClass());
+	//for (int i = 0; i < Cameras.Num(); i++)
+	//{
+	//	// finding activated camera component
+	//	if (Cameras[i]->bIsActive == false) continue;
+
+	//	// if the active camera is the last in the list activate the 1st one.
+	//	if (i == Cameras.Num() - 1)
+	//	{
+	//		Cameras[i]->Deactivate();
+	//		Cameras[0]->Activate();
+	//	}
+	//	else 
+	//	{
+	//		Cameras[i]->Deactivate();
+	//		Cameras[i + 1]->Activate();
+	//	}
+	//	return;
+	//}
+}
+
 float AFPS_Char::GetForwardMovement()
 {
 	return MoveForwardValue;
@@ -138,3 +218,67 @@ float AFPS_Char::GetRightMovement()
 {
 	return MoveRightValue;
 }
+
+void AFPS_Char::Crouch()
+{
+	if (bToggleCrouch)
+	{
+		if (MovementStatus == ECharacterMovementStatus::ECMS_Crouching)
+			MovementStatus = ECharacterMovementStatus::ECMS_Jogging;
+		else
+			MovementStatus = ECharacterMovementStatus::ECMS_Crouching;
+	}
+	else
+	{
+		MovementStatus = ECharacterMovementStatus::ECMS_Crouching;
+	}
+}
+
+void AFPS_Char::CrouchRelease()
+{
+	if(!bToggleCrouch)
+		MovementStatus = ECharacterMovementStatus::ECMS_Jogging;
+}
+
+void AFPS_Char::Run()
+{
+	if (bToggleRun)
+	{
+		if (MovementStatus == ECharacterMovementStatus::ECMS_Running)
+			MovementStatus = ECharacterMovementStatus::ECMS_Jogging;
+		else
+			MovementStatus = ECharacterMovementStatus::ECMS_Running;
+	}
+	else
+	{
+		MovementStatus = ECharacterMovementStatus::ECMS_Running;
+	}
+}
+
+void AFPS_Char::RunRelease()
+{
+	if (!bToggleRun)
+		MovementStatus = ECharacterMovementStatus::ECMS_Jogging;
+}
+
+void AFPS_Char::Walk()
+{
+	if (bToggleWalk)
+	{
+		if (MovementStatus == ECharacterMovementStatus::ECMS_Walking)
+			MovementStatus = ECharacterMovementStatus::ECMS_Jogging;
+		else
+			MovementStatus = ECharacterMovementStatus::ECMS_Walking;
+	}
+	else
+	{
+		MovementStatus = ECharacterMovementStatus::ECMS_Walking;
+	}
+}
+
+void AFPS_Char::WalkRelease()
+{
+	if (!bToggleWalk)
+		MovementStatus = ECharacterMovementStatus::ECMS_Jogging;
+}
+	

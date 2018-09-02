@@ -14,15 +14,15 @@ enum class ECharacterMovementStatus : uint8
 	ECMS_Walking		= 0	UMETA(DisplayName="Walking"),
 	ECMS_Jogging		= 1	UMETA(DisplayName = "Jogging"),
 	ECMS_Running		= 2	UMETA(DisplayName = "Running"),
-	ECMS_Crouching		= 2	UMETA(DisplayName = "Crouching"),
+	ECMS_Crouching		= 3	UMETA(DisplayName = "Crouching"),
 };
 
 UENUM(BlueprintType)
 enum class EWeaponPose : uint8
 {
 	EWP_Low				= 0	UMETA(DisplayName = "Low"),
-	EWP_Ready			= 0	UMETA(DisplayName = "Ready"),
-	EWP_Ironsight		= 0	UMETA(DisplayName = "Ironsight"),
+	EWP_Ready			= 1	UMETA(DisplayName = "Ready"),
+	EWP_Ironsight		= 2	UMETA(DisplayName = "Ironsight"),
 };
 
 UCLASS()
@@ -67,6 +67,15 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")
 		float AnimationPlayRate = 1;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Movement")
+		float RunMultiplier = 1;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Movement")
+		float GeneralMovementMultiplier = 1;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Movement")
+		float ReloadMultiplier = 1;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Weapons")
 		TSubclassOf<ABC_Weapon> PrimaryWPNClass;

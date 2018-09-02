@@ -52,13 +52,12 @@ void ABC_Character::Tick(float DeltaTime)
 
 void ABC_Character::Aim()
 {
-	bIsAiming = true;
+	WeaponPose = EWeaponPose::EWP_Ironsight;
 }
 
 void ABC_Character::StopAim()
 {
-
-	bIsAiming = false;
+	WeaponPose = EWeaponPose::EWP_Ready;
 }
 
 void ABC_Character::Fire()

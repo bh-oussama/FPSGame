@@ -136,38 +136,50 @@ void ABC_Weapon::Reload()
 	bCanFire = false;
 	bIsReloading = true;
 
-	// try and play a firing animation if specified
-	if (ReloadAnimation != NULL)
+	ABC_Character* Pawn = Cast<ABC_Character>(OwnerPawn);
+	UAnimMontage* ReloadAnimationToPlay;
+	if (Pawn->GetWeaponPose() == EWeaponPose::EWP_Ironsight || Pawn->GetWeaponPose() == EWeaponPose::EWP_Ready)
 	{
-		// Get the animation object for the arms mesh
-		if (OwnerPawn->GetMesh())
+		ReloadAnimationToPlay = ReloadAnimation_Ironsight;
+	}
+	else
+	{
+		ReloadAnimationToPlay = ReloadAnimation_Relaxed;
+	}
+	{
+		// try and play a firing animation if specified
+		if (ReloadAnimationToPlay != NULL)
 		{
-			UAnimInstance* AnimInstance3P = OwnerPawn->GetMesh()->GetAnimInstance();
-			if (AnimInstance3P != NULL)
+			// Get the animation object for the arms mesh
+			if (OwnerPawn->GetMesh())
 			{
-				AnimInstance3P->Montage_Play(ReloadAnimation, 1.f);
-			}
+				UAnimInstance* AnimInstance3P = OwnerPawn->GetMesh()->GetAnimInstance();
+				if (AnimInstance3P != NULL)
+				{
+					AnimInstance3P->Montage_Play(ReloadAnimationToPlay, Pawn->ReloadMultiplier);
+				}
 
-		}
-		if (Cast<AFPS_Char>(OwnerPawn)->Mesh1P)
-		{
-			UAnimInstance* AnimInstance1P = Cast<AFPS_Char>(OwnerPawn)->Mesh1P->GetAnimInstance();
-			if (AnimInstance1P != NULL)
+			}
+			if (Cast<AFPS_Char>(OwnerPawn)->Mesh1P)
 			{
-				AnimInstance1P->Montage_Play(ReloadAnimation, 1.f);
+				UAnimInstance* AnimInstance1P = Cast<AFPS_Char>(OwnerPawn)->Mesh1P->GetAnimInstance();
+				if (AnimInstance1P != NULL)
+				{
+					AnimInstance1P->Montage_Play(ReloadAnimationToPlay, Pawn->ReloadMultiplier);
+				}
 			}
 		}
 	}
 	
-	// wait for ReloadAnimation in Ammo time, update ammo info and end reloading
+	// wait for ReloadAnimationToPlay in Ammo time, update ammo info and end reloading
 	UKismetSystemLibrary::Delay(GetWorld(), ReloadTimeInAnimation, FLatentActionInfo());
 	
 	CurrentAmmoInPocket += CurrentAmmoInClip;
 	CurrentAmmoInClip = FMath::Min<float>(CurrentAmmoInPocket, ClipMaxSize + ((bHasBulletInBolt) ? 1 : 0) );
 	CurrentAmmoInPocket -= CurrentAmmoInClip;
-	if (ReloadAnimation != NULL)
+	if (ReloadAnimationToPlay != NULL)
 	{
-		UKismetSystemLibrary::Delay(GetWorld(), ReloadAnimation->GetPlayLength() - ReloadTimeInAnimation, FLatentActionInfo());
+		UKismetSystemLibrary::Delay(GetWorld(), ReloadAnimationToPlay->GetPlayLength() - ReloadTimeInAnimation, FLatentActionInfo());
 	}
 
 	bIsReloading = false;
@@ -366,6 +378,11 @@ EWeaponFireMode ABC_Weapon::GetCurrentFireMode()
 bool ABC_Weapon::IsFiring()
 {
 	return bIsFiring;
+}
+
+bool ABC_Weapon::IsReloading()
+{
+	return bIsReloading;
 }
 
 void ABC_Weapon::SetCamera(UCameraComponent* CameraToSet)

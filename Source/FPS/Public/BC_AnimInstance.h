@@ -42,12 +42,31 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Basic")
 		bool bIsFiring = false;
 
+	// Is Reloading.
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Basic")
+		bool bIsReloading = false;
+
 	// Weapon Type
 	UPROPERTY(BlueprintReadWrite, Category = "Basic")
 		EWeaponType EquippedWeaponType = EWeaponType::WPN_HANDGUN;
 
+	// Weapon fire mode
+	UPROPERTY(BlueprintReadWrite, Category = "Basic")
+		EWeaponFireMode WeaponFireMode = EWeaponFireMode::FIRE_MANUAL;
+
 	UPROPERTY(BlueprintReadWrite, Category = "Basic")
 		float AnimationPlayRate = 1;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Basic")
+		float RunMultiplier = 1;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Basic")
+		float GeneralMovementMultiplier = 1;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Basic")
+		float ReloadMultiplier = 1;
+
+
 
 
 	virtual void NativeUpdateAnimation(float DeltaTime) override;

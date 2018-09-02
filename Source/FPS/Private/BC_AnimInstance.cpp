@@ -24,38 +24,46 @@ void UBC_AnimInstance::NativeUpdateAnimation(float DeltaTime)
 	MoveRight = OwnerPawn->GetRightMovement();
 	MoveForward = OwnerPawn->GetForwardMovement();
 	MovementStatus = OwnerPawn->GetMovementStatus();
-
-	// getting Weapon related VARs
-	bIsFiring = OwnerPawn->IsFiring();
-	WeaponPose = OwnerPawn->GetWeaponPose();
+	RunMultiplier = OwnerPawn->RunMultiplier;
+	GeneralMovementMultiplier = OwnerPawn->GeneralMovementMultiplier;
+	ReloadMultiplier = OwnerPawn->ReloadMultiplier;
 
 	// getting the rotation offset between pawn rotation and control rotation
 	FRotator DeltaRotation = UKismetMathLibrary::NormalizedDeltaRotator(OwnerPawn->GetControlRotation(), OwnerPawn->GetActorRotation());
 	PitchOffset = DeltaRotation.Pitch;
 	YawOffset = DeltaRotation.Yaw;
 
-	// getting the type of the equipped weapon
-	if (UKismetMathLibrary::ClassIsChildOf(OwnerPawn->GetEquippedWeapon()->GetClass(), ABC_RifleWeapon::StaticClass()))
+	
+	// getting Weapon related VARs
+	if (OwnerPawn->GetEquippedWeapon() != NULL)
 	{
-		EquippedWeaponType = EWeaponType::WPN_RIFLE;
-	}
-	else if (UKismetMathLibrary::ClassIsChildOf(OwnerPawn->GetEquippedWeapon()->GetClass(), ABC_HandgunWeapon::StaticClass()))
-	{
-		EquippedWeaponType = EWeaponType::WPN_HANDGUN;
-	}
-	else if (UKismetMathLibrary::ClassIsChildOf(OwnerPawn->GetEquippedWeapon()->GetClass(), ABC_ShotgunWeapon::StaticClass()))
-	{
-		EquippedWeaponType = EWeaponType::WPN_SHOTGUN;
-	}
-	else if (UKismetMathLibrary::ClassIsChildOf(OwnerPawn->GetEquippedWeapon()->GetClass(), ABC_SniperWeapon::StaticClass()))
-	{
-		EquippedWeaponType = EWeaponType::WPN_SNIPER;
-	}
-	else if (UKismetMathLibrary::ClassIsChildOf(OwnerPawn->GetEquippedWeapon()->GetClass(), ABC_MeleeWeapon::StaticClass()))
-	{
-		EquippedWeaponType = EWeaponType::WPN_MELEE;
-	}
+		bIsFiring = OwnerPawn->IsFiring();
+		WeaponPose = OwnerPawn->GetWeaponPose();
+		WeaponFireMode = OwnerPawn->GetEquippedWeapon()->GetCurrentFireMode();
+		bIsReloading = OwnerPawn->GetEquippedWeapon()->IsReloading();
 
+		// getting the type of the equipped weapon
+		if (UKismetMathLibrary::ClassIsChildOf(OwnerPawn->GetEquippedWeapon()->GetClass(), ABC_RifleWeapon::StaticClass()))
+		{
+			EquippedWeaponType = EWeaponType::WPN_RIFLE;
+		}
+		else if (UKismetMathLibrary::ClassIsChildOf(OwnerPawn->GetEquippedWeapon()->GetClass(), ABC_HandgunWeapon::StaticClass()))
+		{
+			EquippedWeaponType = EWeaponType::WPN_HANDGUN;
+		}
+		else if (UKismetMathLibrary::ClassIsChildOf(OwnerPawn->GetEquippedWeapon()->GetClass(), ABC_ShotgunWeapon::StaticClass()))
+		{
+			EquippedWeaponType = EWeaponType::WPN_SHOTGUN;
+		}
+		else if (UKismetMathLibrary::ClassIsChildOf(OwnerPawn->GetEquippedWeapon()->GetClass(), ABC_SniperWeapon::StaticClass()))
+		{
+			EquippedWeaponType = EWeaponType::WPN_SNIPER;
+		}
+		else if (UKismetMathLibrary::ClassIsChildOf(OwnerPawn->GetEquippedWeapon()->GetClass(), ABC_MeleeWeapon::StaticClass()))
+		{
+			EquippedWeaponType = EWeaponType::WPN_MELEE;
+		}
+	}
 }
 
 

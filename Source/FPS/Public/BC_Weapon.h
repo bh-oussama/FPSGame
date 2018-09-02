@@ -114,9 +114,13 @@ public:
 
 	/** AnimMontage to play when reloading */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Gameplay)
-		class UAnimMontage* ReloadAnimation;
+		class UAnimMontage* ReloadAnimation_Relaxed;
+	
+	/** AnimMontage to play when reloading */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Gameplay)
+		class UAnimMontage* ReloadAnimation_Ironsight;
 
-	/** time in ReloadAnimation where the weapon should update ammo info. */
+	/** time in ReloadAnimation where the weapon should update ammo info (manually set). */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Gameplay)
 		float ReloadTimeInAnimation = 0;
 
@@ -170,6 +174,10 @@ public:
 	/** returns if the weapon is firing or not. */
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 		bool IsFiring();
+
+	/** returns if the weapon is reloading or not. */
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+		bool IsReloading();
 
 	/** sets the camera which is used to calculate firing target point. */
 	UFUNCTION(BlueprintCallable)

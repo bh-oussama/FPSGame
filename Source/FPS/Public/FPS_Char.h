@@ -38,6 +38,9 @@ protected:
 	*/
 	void LookUpAtRate(float Rate);
 
+	// finds all camera components in the class and activates the next one after deactivating the current.
+	UFUNCTION(BlueprintCallable)
+		void SwitchCamera();
 
 	/** returns forward movement value which is set via input. */
 	UFUNCTION(BlueprintCallable, BlueprintPure)
@@ -46,7 +49,13 @@ protected:
 	/** returns right movement value which is set via input. */
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 		virtual float GetRightMovement() override;
-
+	
+	void Crouch();
+	void CrouchRelease();
+	void Run();
+	void RunRelease();
+	void Walk();
+	void WalkRelease();
 
 public:	
 
@@ -56,8 +65,25 @@ public:
 
 	/** First person camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+		class USpringArmComponent* ThirdPersonSpringArmComponent;
+
+	/** First person camera */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+		class UCameraComponent* ThirdPersonCameraComponent;
+
+	/** First person camera */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 		class UCameraComponent* FirstPersonCameraComponent;
-	
+
+	UPROPERTY(EditDefaultsOnly, Category = "Movement")
+		bool bToggleCrouch = true;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Movement")
+		bool bToggleRun = true;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Movement")
+		bool bToggleWalk = false;
+
 	/** Hand's weapon socket */
 	UPROPERTY(EditDefaultsOnly, Category = "Weapons")
 		FName HandGripSocketName = "GripPoint";
