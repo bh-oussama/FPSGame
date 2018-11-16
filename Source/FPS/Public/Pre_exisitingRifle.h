@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "BC_Weapon.h"
+#include "BC_RifleWeapon.h"
 #include "Pre_exisitingRifle.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class FPS_API APre_exisitingRifle : public ABC_Weapon
+class FPS_API APre_exisitingRifle : public ABC_RifleWeapon
 {
 	GENERATED_BODY()
 

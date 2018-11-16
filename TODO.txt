@@ -1,16 +1,21 @@
 
-Camera Control:
-	- make functionnal switching between cameras in AFPS_Char
 	
 AI:
-make ai fire the weapon at sight
+	- make ai fire the weapon at sight
+	- make able to take cover.
 
 Caracters & Animations:
-	- make the fps_char supprts TPS
-	- give the FPS_Char it's own EquippedWeapon not the one that the TPS_Mesh should have (find a solution before).
-	- After importing a sniper make it run under the rifle animation and give it a two bone ik
-	- After importing a Shotgun make it run under the rifle animation and give it a two bone ik
+	- After importing a sniper make it run under the rifle animation and give it a two bone ik.
+	- After importing a Shotgun make it run under the rifle animation and give it a two bone ik.
 	- Update the character's movement status and movement component's max speed depending on situation.
+	- Include Cover Animation in the project.
+		• No translation between stand cover and low cover.
+		• Fire without aiming.
+	- Integrate grenades.
+	- Update player's movement to update the animation.
+	- enable jumping.
+	- enable crouch.
+	- reimport rifle_01 animations used because original assets has a skeleton that include bones for weapons.
 	
 Weapons & Projectiles:
 	-give attachements to the weapon.

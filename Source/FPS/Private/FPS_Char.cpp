@@ -9,6 +9,7 @@
 #include "BC_Weapon.h"
 #include "Engine/EngineTypes.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 // TODO: give fps_char his proper equipped weapon in a way that tps and fps equipped weapons exist in the same time and with the same reference if possible.
 
@@ -31,15 +32,18 @@ AFPS_Char::AFPS_Char()
 
 	// Create a SpringArmComponent for the 3P's camera
 	ThirdPersonSpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("Spring Arm"));
+	ThirdPersonSpringArmComponent->SetupAttachment(GetCapsuleComponent());
 	ThirdPersonSpringArmComponent->TargetArmLength = 150;
-	ThirdPersonSpringArmComponent->RelativeLocation = FVector(0, 0, 30);
+
 	ThirdPersonSpringArmComponent->SocketOffset = FVector(0, 66, 20);
+	ThirdPersonSpringArmComponent->bInheritYaw = true;
+	ThirdPersonSpringArmComponent->bInheritPitch = true;
+	ThirdPersonSpringArmComponent->bUsePawnControlRotation = true;
 
 	// Create a CameraComponent for the third person mesh view 	
 	ThirdPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	ThirdPersonCameraComponent->SetupAttachment(ThirdPersonSpringArmComponent);
 	ThirdPersonCameraComponent->bAutoActivate = false;
-	//ThirdPersonCameraComponent->Deactivate();
 
 	// Create a CameraComponent	
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
@@ -62,7 +66,6 @@ AFPS_Char::AFPS_Char()
 void AFPS_Char::BeginPlay()
 {
 	Super::BeginPlay();
-	ThirdPersonCameraComponent->Deactivate();
 	
 	if (PrimaryWPNClass != NULL)
 	{
@@ -71,23 +74,18 @@ void AFPS_Char::BeginPlay()
 		GetEquippedWeapon()->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, false), HandGripSocketName);
 		GetEquippedWeapon()->SetCamera(FirstPersonCameraComponent);
 		GetEquippedWeapon()->SetOwnerPawn(this);
+		SetEquippedWeapon(GetEquippedWeapon());
 	}
+
+	MovementStatus = ECharacterMovementStatus::ECMS_Jogging;
+	WeaponPose = EWeaponPose::EWP_Ready;
 }
-
-
 
 // Called every frame
 void AFPS_Char::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	UKismetSystemLibrary::PrintString(
-		GetWorld(),
-		(FString)((ThirdPersonCameraComponent->IsActive()) ? "true" : "false"),
-		true,
-		false,
-		FLinearColor(1, 0, 0)
-	);
 }
 
 // Called to bind functionality to input
@@ -115,10 +113,10 @@ void AFPS_Char::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	// Bind movement events
 	PlayerInputComponent->BindAxis("MoveForward", this, &AFPS_Char::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AFPS_Char::MoveRight);
-	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AFPS_Char::Crouch);
+	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AFPS_Char::OnCrouchPressed);
 	PlayerInputComponent->BindAction("Run", IE_Pressed, this, &AFPS_Char::Run);
 	PlayerInputComponent->BindAction("Walk", IE_Pressed, this, &AFPS_Char::Walk);
-	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &AFPS_Char::CrouchRelease);
+	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &AFPS_Char::OnCrouchRelease);
 	PlayerInputComponent->BindAction("Run", IE_Released, this, &AFPS_Char::RunRelease);
 	PlayerInputComponent->BindAction("Walk", IE_Released, this, &AFPS_Char::WalkRelease);
 
@@ -166,26 +164,28 @@ void AFPS_Char::LookUpAtRate(float Rate)
 
 void AFPS_Char::SwitchCamera()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Switching camera."));
+	
 	// switching camera
-
-	ThirdPersonCameraComponent->SetActive(true);
-	FirstPersonCameraComponent->SetActive(false);
-/*
 	FirstPersonCameraComponent->ToggleActive();
 	ThirdPersonCameraComponent->ToggleActive();
-*/
-	//// updating the mesh that the player see
-	//if (FirstPersonCameraComponent->IsActive())
-	//{
-	//	Mesh1P->bOwnerNoSee = false;
-	//	GetMesh()->bOwnerNoSee = true;
-	//}
-	//else
-	//{
-	//	Mesh1P->bOwnerNoSee = true;
-	//	GetMesh()->bOwnerNoSee = false;
-	//}
+
+	// updating the mesh that the player see
+	if (ThirdPersonCameraComponent->IsActive())
+	{
+		Mesh1P->SetOwnerNoSee(true);
+		GetMesh()->SetOwnerNoSee(false);
+		GetEquippedWeapon()->Mesh->SetOwnerNoSee(false);
+		GetEquippedWeapon()->Mesh1P->SetOwnerNoSee(true);
+		GetEquippedWeapon()->SetCamera(ThirdPersonCameraComponent);
+	}
+	else
+	{
+		GetEquippedWeapon()->Mesh->SetOwnerNoSee(true);
+		GetEquippedWeapon()->Mesh1P->SetOwnerNoSee(false);
+		Mesh1P->SetOwnerNoSee(false);
+		GetMesh()->SetOwnerNoSee(true);
+		GetEquippedWeapon()->SetCamera(FirstPersonCameraComponent);
+	}
 
 	// incomment this section if the character has more than 2 cameras to toggle between.
 	//auto Cameras = GetComponentsByClass(UCameraComponent::StaticClass());
@@ -219,7 +219,7 @@ float AFPS_Char::GetRightMovement()
 	return MoveRightValue;
 }
 
-void AFPS_Char::Crouch()
+void AFPS_Char::OnCrouchPressed()
 {
 	if (bToggleCrouch)
 	{
@@ -232,9 +232,17 @@ void AFPS_Char::Crouch()
 	{
 		MovementStatus = ECharacterMovementStatus::ECMS_Crouching;
 	}
+	if (MovementStatus == ECharacterMovementStatus::ECMS_Crouching)
+	{
+		Crouch();
+	}
+	else
+	{
+		UnCrouch();
+	}
 }
 
-void AFPS_Char::CrouchRelease()
+void AFPS_Char::OnCrouchRelease()
 {
 	if(!bToggleCrouch)
 		MovementStatus = ECharacterMovementStatus::ECMS_Jogging;
@@ -252,6 +260,15 @@ void AFPS_Char::Run()
 	else
 	{
 		MovementStatus = ECharacterMovementStatus::ECMS_Running;
+	}
+	auto MovComp = Cast<UCharacterMovementComponent>(GetMovementComponent());
+	if (MovementStatus == ECharacterMovementStatus::ECMS_Running)
+	{
+		MovComp->MaxWalkSpeed = 1000;
+	}
+	else
+	{
+		MovComp->MaxWalkSpeed = 600;
 	}
 }
 
@@ -281,4 +298,19 @@ void AFPS_Char::WalkRelease()
 	if (!bToggleWalk)
 		MovementStatus = ECharacterMovementStatus::ECMS_Jogging;
 }
-	
+
+void AFPS_Char::SetEquippedWeapon(ABC_Weapon * WeaponToEquip)
+{
+	Super::SetEquippedWeapon(WeaponToEquip);
+	GetEquippedWeapon()->Mesh->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, false), EquippedWPNSocketName);
+	GetEquippedWeapon()->Mesh1P->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, false), HandGripSocketName);
+	if (ThirdPersonCameraComponent->IsActive() == false)
+	{
+		GetEquippedWeapon()->Mesh1P->SetOwnerNoSee(false);
+		GetEquippedWeapon()->SetCamera(FirstPersonCameraComponent);
+	}
+	else
+	{
+		GetEquippedWeapon()->SetCamera(ThirdPersonCameraComponent);
+	}
+}

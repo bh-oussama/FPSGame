@@ -50,8 +50,8 @@ protected:
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 		virtual float GetRightMovement() override;
 	
-	void Crouch();
-	void CrouchRelease();
+	void OnCrouchPressed();
+	void OnCrouchRelease();
 	void Run();
 	void RunRelease();
 	void Walk();
@@ -64,11 +64,11 @@ public:
 		class USkeletalMeshComponent* Mesh1P;
 
 	/** First person camera */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		class USpringArmComponent* ThirdPersonSpringArmComponent;
 
 	/** First person camera */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera)
 		class UCameraComponent* ThirdPersonCameraComponent;
 
 	/** First person camera */
@@ -98,6 +98,9 @@ public:
 		float BaseLookUpRate;
 
 
+	/** sets the equipped weapon. */
+	UFUNCTION(BlueprintCallable)
+		virtual void SetEquippedWeapon(class ABC_Weapon* WeaponToEquip) override;
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

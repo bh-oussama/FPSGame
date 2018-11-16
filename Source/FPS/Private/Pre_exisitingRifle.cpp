@@ -4,13 +4,14 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/SkeletalMesh.h"
 
+
 APre_exisitingRifle::APre_exisitingRifle()
 	:Super()
 {
 	//Super::ABC_Weapon();
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshFinder(TEXT("/Game/Assets/Weapons/FPWeapon/Mesh/SK_FPGun"));
 	Mesh->SetSkeletalMesh(MeshFinder.Object);
-
+	Mesh1P->SetSkeletalMesh(MeshFinder.Object);
 	FireRange = 10000;
 	Damage = 30;
 	FireRate = 500;

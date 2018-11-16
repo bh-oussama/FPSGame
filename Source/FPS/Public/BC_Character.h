@@ -98,16 +98,23 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapons")
 		FName MeleeWPNSocketName = "Socket_MeleeWPN";
 
+	UPROPERTY(EditDefaultsOnly, Category = "Weapons")
+		bool bInCombat = false;
+
 	/** returns equipped weapon. */
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 		ABC_Weapon* GetEquippedWeapon();
 
 	/** sets the equipped weapon. */
 	UFUNCTION(BlueprintCallable)
-		void SetEquippedWeapon(ABC_Weapon* WeaponToEquip);
+		virtual void SetEquippedWeapon(ABC_Weapon* WeaponToEquip);
+
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 		bool IsFiring();
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+		bool IsInCombat();
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 		ECharacterMovementStatus GetMovementStatus();

@@ -98,11 +98,17 @@ ABC_Weapon * ABC_Character::GetEquippedWeapon()
 void ABC_Character::SetEquippedWeapon(ABC_Weapon * WeaponToEquip)
 {
 	EquippedWPN = WeaponToEquip;
+	EquippedWPN->SetOwner(this);
 }
 
 bool ABC_Character::IsFiring()
 {
 	return EquippedWPN->IsFiring();
+}
+
+bool ABC_Character::IsInCombat()
+{
+	return bInCombat;
 }
 
 ECharacterMovementStatus ABC_Character::GetMovementStatus()

@@ -57,8 +57,13 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	// this mesh will appear attached to the 3rd person mesh.
 	UPROPERTY(VisibleDefaultsOnly)
 		USkeletalMeshComponent* Mesh = nullptr;
+
+	// this mesh will appear attached to the 1st person mesh if the weapon is possessed by a player not ai.
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		USkeletalMeshComponent* Mesh1P = nullptr;
 
 	/** List of fire modes supported by the weapon */
 	UPROPERTY(EditDefaultsOnly, Category = "Weapons")

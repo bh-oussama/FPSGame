@@ -28,7 +28,11 @@ ABC_Weapon::ABC_Weapon()
 	USceneComponent* Root = CreateDefaultSubobject<USceneComponent>(FName("Root"));
 	RootComponent = Root;
 	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(FName("Mesh"));
+	// set the skeletal mesh of this component to the same set with Mesh.
+	Mesh1P = CreateDefaultSubobject<USkeletalMeshComponent>(FName("Mesh1P"));
 	Mesh->SetupAttachment(Root);
+	Mesh1P->SetOnlyOwnerSee(true);
+	Mesh1P->SetOwnerNoSee(true);
 
 	// sets the default fire mode and if there is no one set by default logs it.
 	if (FireModes.Num() > 0)
@@ -203,7 +207,8 @@ void ABC_Weapon::Fire(FVector TargetLocation)
 	BulletCount++;
 	
 	// try and fire a projectile
-	
+	SpawnProjectiles(TargetLocation);
+
 	// try and play the sound if specified
 	if (FireSound != NULL)
 	{
@@ -250,7 +255,17 @@ void ABC_Weapon::SpawnProjectiles(FVector TargetLocation)
 		{
 			float InversedAccuracy = 1 - CurrentAccuracy;
 
-			const FVector SpawnLocation = Mesh->GetSocketLocation(MuzzleName);
+			FVector SpawnLocation; 
+			auto FPS = Cast<AFPS_Char>(GetOwner());
+			if (FPS != NULL && FPS->FirstPersonCameraComponent->IsActive())
+			{
+				SpawnLocation = Mesh1P->GetSocketLocation(MuzzleName);
+			}
+			else
+			{
+				SpawnLocation = Mesh->GetSocketLocation(MuzzleName);
+			}
+			
 
 			FRotator SpawnRotation;
 			if (TargetLocation.Equals(FVector(0, 0, -100000)))
@@ -299,7 +314,6 @@ void ABC_Weapon::SpawnProjectiles(FVector TargetLocation)
 			{
 				ProjectileSpawned->SphereComponent->IgnoreActorWhenMoving(OwnerPawn, true);
 			}
-
 		}
 		else
 		{
