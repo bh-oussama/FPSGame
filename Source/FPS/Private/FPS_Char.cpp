@@ -16,7 +16,7 @@
 // Sets default values
 AFPS_Char::AFPS_Char()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	// Set size for collision capsule
@@ -28,7 +28,7 @@ AFPS_Char::AFPS_Char()
 
 	// hidding the 3rd person mesh
 	GetMesh()->bOwnerNoSee = true;
-	GetMesh()->RelativeRotation = FRotator(0, -90, 0);
+	GetMesh()->SetRelativeRotation(FRotator(0, -90, 0));
 
 	// Create a SpringArmComponent for the 3P's camera
 	ThirdPersonSpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("Spring Arm"));
@@ -48,7 +48,7 @@ AFPS_Char::AFPS_Char()
 	// Create a CameraComponent	
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("ThirdPersonCamera"));
 	FirstPersonCameraComponent->SetupAttachment(GetCapsuleComponent());
-	FirstPersonCameraComponent->RelativeLocation = FVector(-39.56f, 1.75f, 64.f); // Position the camera
+	FirstPersonCameraComponent->SetRelativeLocation(FVector(-39.56f, 1.75f, 64.f)); // Position the camera
 	FirstPersonCameraComponent->bUsePawnControlRotation = true;
 
 	// Create a mesh component that will be used when being viewed from a '1st person' view (when controlling this pawn)
@@ -57,8 +57,8 @@ AFPS_Char::AFPS_Char()
 	Mesh1P->SetupAttachment(FirstPersonCameraComponent);
 	Mesh1P->bCastDynamicShadow = false;
 	Mesh1P->CastShadow = false;
-	Mesh1P->RelativeRotation = FRotator(1.9f, -19.19f, 5.2f);
-	Mesh1P->RelativeLocation = FVector(-0.5f, -4.4f, -155.7f);
+	Mesh1P->SetRelativeRotation(FRotator(1.9f, -19.19f, 5.2f));
+	Mesh1P->SetRelativeLocation(FVector(-0.5f, -4.4f, -155.7f));
 
 }
 
@@ -66,7 +66,7 @@ AFPS_Char::AFPS_Char()
 void AFPS_Char::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	if (PrimaryWPNClass != NULL)
 	{
 		// equip primary weapon because of the extra hands of the 1P
@@ -92,7 +92,7 @@ void AFPS_Char::Tick(float DeltaTime)
 void AFPS_Char::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-	
+
 	// Bind jump events
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
@@ -164,7 +164,7 @@ void AFPS_Char::LookUpAtRate(float Rate)
 
 void AFPS_Char::SwitchCamera()
 {
-	
+
 	// switching camera
 	FirstPersonCameraComponent->ToggleActive();
 	ThirdPersonCameraComponent->ToggleActive();
@@ -244,7 +244,7 @@ void AFPS_Char::OnCrouchPressed()
 
 void AFPS_Char::OnCrouchRelease()
 {
-	if(!bToggleCrouch)
+	if (!bToggleCrouch)
 		MovementStatus = ECharacterMovementStatus::ECMS_Jogging;
 }
 
@@ -299,7 +299,7 @@ void AFPS_Char::WalkRelease()
 		MovementStatus = ECharacterMovementStatus::ECMS_Jogging;
 }
 
-void AFPS_Char::SetEquippedWeapon(ABC_Weapon * WeaponToEquip)
+void AFPS_Char::SetEquippedWeapon(ABC_Weapon* WeaponToEquip)
 {
 	Super::SetEquippedWeapon(WeaponToEquip);
 	GetEquippedWeapon()->Mesh->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, false), EquippedWPNSocketName);

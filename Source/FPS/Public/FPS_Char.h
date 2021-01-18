@@ -43,11 +43,11 @@ protected:
 		void SwitchCamera();
 
 	/** returns forward movement value which is set via input. */
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	//UFUNCTION(BlueprintCallable, BlueprintPure)
 		virtual float GetForwardMovement() override;
 
 	/** returns right movement value which is set via input. */
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	//UFUNCTION(BlueprintCallable, BlueprintPure)
 		virtual float GetRightMovement() override;
 	
 	void OnCrouchPressed();
@@ -99,7 +99,7 @@ public:
 
 
 	/** sets the equipped weapon. */
-	UFUNCTION(BlueprintCallable)
+	//UFUNCTION(BlueprintCallable)
 		virtual void SetEquippedWeapon(class ABC_Weapon* WeaponToEquip) override;
 
 	// Called every frame
